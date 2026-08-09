@@ -1,0 +1,2 @@
+# MLOPS
+Turma 01 do professor  ADELSON DIAS DE ARAÚJO JÚNIOR de MLOPS
