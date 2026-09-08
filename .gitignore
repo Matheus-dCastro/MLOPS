@@ -1,0 +1,16 @@
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# Airflow
+airflow/
+airflow_project/
+airflow.cfg
+airflow.db
+airflow.db-journal
+airflow-*.pid
+airflow-*.err
+airflow-*.log
+standalone_admin_password.txt
+webserver_config.py
