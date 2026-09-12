@@ -4,8 +4,7 @@ __pycache__/
 *.pyc
 
 # Airflow
-airflow/
-airflow_project/
+
 airflow.cfg
 airflow.db
 airflow.db-journal
