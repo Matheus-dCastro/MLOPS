@@ -1,22 +1,23 @@
 from airflow import DAG
+from airflow.decorators import task
 from airflow.providers.standard.operators.empty import EmptyOperator
+from airflow.models import Variable
 import requests
 
 import pandas as pd
+import numpy as np
 from sklearn.preprocessing import StandardScaler
 
 from datetime import datetime
 import os
     
 
-# with DAG(
-#     dag_id="tmdb_api",
-#     start_date=datetime(2026, 9,12),
-#     schedule= "@daily" ) as dag:
+# este era o arquivo q eu estava usando para testar como o construia o projeto junto do uso da daq, 
 
-URL = "https://api.themoviedb.org/3/movie/top_rated" #  mudar para variaveis do airflow
-URL_generos= "https://api.themoviedb.org/3/genre/movie/list" #  mudar para variaveis do airflow
-API_KEY = "66f326ea45d4f51ff3ed4071d5f20ad0" #  mudar para variaveis do airflow
+URL = Variable.get("URL", "https://api.themoviedb.org/3/movie/top_rated")
+URL_GEN= Variable.get("URL_GEN", "https://api.themoviedb.org/3/genre/movie/list")
+API_KEY = Variable.get("KEY", "66f326ea45d4f51ff3ed4071d5f20ad0") 
+pagues = int(Variable.get("pagues", 5))
 
 
 def api_request(URL="", api_key="", n_pages=None): # requisição
@@ -33,8 +34,9 @@ def api_request(URL="", api_key="", n_pages=None): # requisição
         return dados
     else:
         print(f"ERROR: {result.status_code}" )
+        
 
-
+@task   
 def extract_task_moves(URL,API_KEY, pages=0 ): # extração
     all_moves = []
     
@@ -44,6 +46,8 @@ def extract_task_moves(URL,API_KEY, pages=0 ): # extração
             all_moves.extend(requisicao["results"])
     return all_moves
 
+
+@task   
 def extract_task_gener(API_KEY, URL): # extraçao 
     id_generos= api_request(URL, API_KEY) # para o modelo saber oq é cada id_gener de cada filme
     genres = []
@@ -53,7 +57,7 @@ def extract_task_gener(API_KEY, URL): # extraçao
 
 
 
-
+@task   
 def transform_task(moves, geners):
     df_all_moves =  pd.DataFrame(moves)
     
@@ -75,18 +79,27 @@ def transform_task(moves, geners):
     scaler = StandardScaler()
     colunas_para_normalizar = ["vote_count","popularity"]
     df_all_moves[colunas_para_normalizar] = scaler.fit_transform(df_all_moves[colunas_para_normalizar])
-    # fazer a .fillna("") para remover 
+    # Substitui strings vazias por NaN e depois aplica o fillna
+
+    df_all_moves["overview_count"] = df_all_moves["overview"].fillna("").astype(str).str.strip().apply(len)
+    
+    df_all_moves["overview"] = df_all_moves["overview"].replace("", np.nan).fillna("")
     
     return df_all_moves
 
+@task   
 def load_df(df:pd.DataFrame, name_df="features"):
     df.to_csv(f"data/{name_df}.csv", index=False)
     return df
 
 
-
-filmes = extract_task_moves(URL, API_KEY,5) # pega os 100 filmes
-generos = extract_task_gener(API_KEY,URL_generos) # pega os generos acossiados a cada id
-
-df=transform_task(filmes, generos)
-load_df(df)
+with DAG(
+        dag_id="dag_feature_engineering",
+        start_date=datetime(2026, 9, 17),
+        schedule="@daily",
+        catchup=False
+    ) as dag:
+    filmes = extract_task_moves(URL, API_KEY, pagues) 
+    generos = extract_task_gener(API_KEY, URL_GEN)
+    df = transform_task(filmes, generos)
+    load_df(df)
