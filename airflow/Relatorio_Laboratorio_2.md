@@ -3,7 +3,7 @@
 **Aluno:** Matheus Vinicius Silva Freire de Castro  
 **Professor:** Prof. Adelson de Araújo  
 **Repositório:** [https://github.com/Matheus-dCastro/MLOPS](https://github.com/Matheus-dCastro/MLOPS)  
-**Link do W&B Report Oficial:** [https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laboratório-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDAzNg==](https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laborat%C3%B3rio-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDAzNg==)
+**Link do W&B Report Oficial:** [https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laboratório-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDg1OQ==](https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laborat%C3%B3rio-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDg1OQ==?accessToken=d6va0bw1nuvcmx5bl6qdxfmeez2cqwxs6k2prkx4hez0585u230helbahwa9ymty)
 
 ---
 
@@ -88,7 +88,7 @@ Em contraste, o modelo vencedor utilizou restrições regulatórias (`min_sample
 ## 6. Links Oficiais para Avaliação
 
 - 📑 **W&B Report Dinâmico:**  
-  [https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laboratório-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDAzNg==](https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laborat%C3%B3rio-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDAzNg==)
+  [https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laboratório-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDg1OQ==](https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/reports/Laborat%C3%B3rio-2:-Rastreamento-de-Experimentos-com-W&B-(MLOps)--VmlldzoxODA0MDg1OQ==?accessToken=d6va0bw1nuvcmx5bl6qdxfmeez2cqwxs6k2prkx4hez0585u230helbahwa9ymty)
 - 🧹 **Página do Sweep (Parallel Coordinates e Runs):**  
   [https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/sweeps/h6ykq29c](https://wandb.ai/matheus-dcastro/mlops-lab2-sweep/sweeps/h6ykq29c)
 - 📦 **W&B Artifact do Dataset:**  
