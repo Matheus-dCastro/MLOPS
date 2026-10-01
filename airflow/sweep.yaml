@@ -1,0 +1,17 @@
+project: mlops-lab2-sweep
+method: bayes
+metric:
+  name: cv_f1_macro_mean
+  goal: maximize
+parameters:
+  n_estimators:
+    values: [50, 100, 200, 400]
+  max_depth:
+    values: [3, 5, 10, 20, null]
+  min_samples_split:
+    values: [2, 5, 10]
+  min_samples_leaf:
+    values: [1, 2, 4]
+  max_features:
+    values: ["sqrt", "log2", null]
+program: train.py

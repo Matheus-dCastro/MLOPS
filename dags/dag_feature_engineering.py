@@ -85,11 +85,16 @@ def transform_task(moves, geners):
     
     df_all_moves["overview"] = df_all_moves["overview"].replace(" ", np.nan).fillna(" ")
     
+    # Criando target binario para o modelo de ML (1 para filmes de altissima avaliacao >= 8.4, 0 caso contrario)
+    df_all_moves["target"] = (df_all_moves["vote_average"] >= 8.4).astype(int)
+
     return df_all_moves
 
 @task   
 def load_df(df:pd.DataFrame, name_df="features"):
+    os.makedirs("data", exist_ok=True)
     df.to_csv(f"data/{name_df}.csv", index=False)
+    df.to_csv(f"{name_df}.csv", index=False)
     return df
 
 

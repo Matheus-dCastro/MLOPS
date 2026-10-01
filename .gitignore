@@ -1,15 +1,53 @@
+# Ambientes Virtuais
 .venv/
 venv/
+ENV/
+env/
+
+# Python cache e compilação
 __pycache__/
-*.pyc
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+.ipynb_checkpoints/
 
-# Airflow
+# Weights & Biases (logs, caches, runs locais, artefatos baixados)
+wandb/
+.wandb/
+artifacts/
+sweep_results_summary.csv
 
-airflow.cfg
-airflow.db
-airflow.db-journal
+# Modelos treinados e artefatos binários
+*.joblib
+*.pkl
+*.model
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# Arquivos temporários e logs
+*.log
+logs/
 airflow-*.pid
 airflow-*.err
 airflow-*.log
+
+# Airflow local / credenciais / DB local
+airflow.cfg
+airflow.db
+airflow.db-journal
 standalone_admin_password.txt
 webserver_config.py
+
+# Credenciais e variáveis de ambiente
+.env
+.netrc
+*.key
+
+# Sistema Operacional
+.DS_Store
+Thumbs.db
