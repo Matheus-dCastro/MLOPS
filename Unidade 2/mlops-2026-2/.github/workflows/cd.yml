@@ -1,0 +1,87 @@
+# .github/workflows/cd.yml
+name: CD
+
+on:
+  push:
+    tags: ['v*']               # versão nova: git push origin v1.0.1
+  workflow_dispatch:           # rollback: botão "Run workflow"
+    inputs:
+      tag:
+        description: 'Tag já publicada no GHCR (ex.: v1.0.0)'
+        required: true
+
+env:
+  TAG: ${{ inputs.tag || github.ref_name }}  # tag digitada ou tag enviada
+  APP_NAME: intent-clf
+  RESOURCE_GROUP: mlops-2026-2
+
+jobs:
+  # 1. Roda o ci.yml inteiro (test + smoke) no commit da tag.
+  # Só segue se tudo passar. No rollback, é pulado.
+  ci:
+    if: github.event_name == 'push'
+    uses: ./.github/workflows/ci.yml
+    secrets: inherit           # o smoke precisa dos segredos do W&B e do Mongo
+
+  # 2. Constrói a imagem e publica no GHCR com a tag da versão
+  release:
+    needs: ci
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build e push com a versão
+        run: |
+          IMAGE=ghcr.io/matheus-dcastro/intent-clf
+          docker build -t "$IMAGE:$TAG" .
+          docker push "$IMAGE:$TAG"
+
+  # 3. Troca a imagem no Azure Container Apps (espera aprovação)
+  deploy:
+    needs: release
+    if: ${{ !failure() && !cancelled() }}  # roda também no rollback (release pulado)
+    environment: production
+    runs-on: ubuntu-latest
+    permissions:
+      id-token: write          # pedir o "crachá" OIDC
+      contents: read
+    steps:
+      - name: Login no Azure via OIDC
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+      - name: Atualizar imagem e versão no Container Apps
+        run: |
+          IMAGE=ghcr.io/matheus-dcastro/intent-clf
+          az containerapp update --name "$APP_NAME" --resource-group "$RESOURCE_GROUP" \
+            --image "$IMAGE:$TAG" \
+            --set-env-vars APP_VERSION="$TAG"
+
+  # 4. Testa a URL pública e confere se a versão certa está no ar
+  verify:
+    needs: deploy
+    if: ${{ !failure() && !cancelled() }}
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          URL=${{ vars.APP_URL }}
+          MSG='{"nome":"cd","text":"não entendi nada"}'
+          for _ in $(seq 90); do               # até 15 min (startup lento)
+            if curl -fsS "$URL/" | grep -q "\"$TAG\"" && \
+               curl -fsS -X POST "$URL/predictions" \
+               -H "Content-Type: application/json" -d "$MSG"; then
+              echo "OK: $TAG no ar"; exit 0
+            fi
+            sleep 10
+          done
+          echo "Falhou: $TAG não respondeu. Faça o rollback."; exit 1

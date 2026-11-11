@@ -1,0 +1,27 @@
+# Arquivos que NÃO precisam ir para o contexto de build da imagem.
+# O Dockerfile só copia requirements.txt e src/ (não excluídos aqui).
+.git
+.github
+.gitignore
+.env
+.env.*
+!.env.example
+__pycache__/
+**/__pycache__
+*.pyc
+*.pyo
+wandb/
+**/models
+tests/
+docs/
+*.md
+.pytest_cache/
+.coverage
+htmlcov/
+.venv/
+venv/
+.idea/
+.vscode/
+.DS_Store
+pytest.ini
+requirements-dev.txt

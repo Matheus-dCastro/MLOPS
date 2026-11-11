@@ -1,0 +1,176 @@
+# ---------------------------------------------------------------
+# CI do classificador de intenções (mlops-2026-2)
+#
+# Três jobs:
+#   1. test         -> testes rápidos (unit/integration), sem segredos
+#   2. docker-build -> só em PR: confere se o Dockerfile constrói
+#   3. smoke        -> só em push para main (ou manual): sobe a API de
+#                      verdade com docker compose e roda os testes e2e
+# ---------------------------------------------------------------
+name: CI - Build e Testes do Classificador
+
+# Quando o workflow dispara:
+# - push em main e pull request para main
+# - workflow_dispatch: botão "Run workflow" na aba Actions
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch: # permite rodar o CI clicando em "Run workflow" na aba Actions
+  workflow_call:     # permite que outros workflows (por exemplo, cd.yml) chamem este workflow inteiro antes de publicar
+
+# Princípio do menor privilégio: o GITHUB_TOKEN só pode LER o repositório.
+permissions:
+  contents: read
+
+# Se chegar um commit novo no mesmo branch/PR, cancela a execução antiga.
+# Economiza minutos de Actions (o smoke é demorado).
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # -------------------------------------------------------------
+  # JOB 1: testes rápidos. Não usa segredos (roda até em PR de fork).
+  # -------------------------------------------------------------
+  test:
+    name: Testes (unit + integration)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20   # evita job travado gastando minutos
+    steps:
+      # Baixa o código do repositório para dentro do runner
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # Instala o Python 3.11 (mesma versão do Dockerfile) e
+      # guarda o cache do pip para as próximas execuções ficarem mais rápidas
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+          cache-dependency-path: requirements-dev.txt
+
+      - name: Instalar dependências de desenvolvimento
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements-dev.txt
+
+      # "-m 'not e2e'" pula os testes e2e (precisam da API rodando).
+      # --cov mostra a cobertura de testes de src/
+      - name: Rodar testes (sem e2e) com cobertura
+        run: python -m pytest -m "not e2e" --cov=src --cov-report=term-missing
+
+  # -------------------------------------------------------------
+  # JOB 2: valida o Dockerfile, apenas em pull request.
+  # Em push para main não precisa: o job "smoke" já constrói a imagem
+  # (docker compose up --build), então evitamos o build pesado em dobro
+  # (TensorFlow demora e gasta minutos).
+  # Sem segredos: construir a imagem não precisa deles.
+  # -------------------------------------------------------------
+  docker-build:
+    name: Build da imagem Docker
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Construir imagem (apenas validação)
+        run: docker build -t intent-clf:ci -f Dockerfile .
+
+  # -------------------------------------------------------------
+  # JOB 3: smoke test ponta a ponta. Sobe a API real (com modelos do
+  # W&B e MongoDB) e roda os testes e2e contra ela.
+  # Só roda em push para main / manual, porque usa SEGREDOS (PRs de
+  # forks não recebem segredos) e é lento.
+  # -------------------------------------------------------------
+  smoke:
+    name: Smoke test (docker compose + e2e)
+    needs: test   # só roda se o job "test" passou
+    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    # O docker-compose.yml lê estas variáveis do ambiente do runner.
+    # Os segredos são cadastrados em Settings > Secrets and variables > Actions.
+    #
+    env:
+      WANDB_API_KEY: ${{ secrets.WANDB_API_KEY }}
+      WANDB_PROJECT: ${{ secrets.WANDB_PROJECT }}
+      WANDB_MODELS: ${{ secrets.WANDB_MODELS }}
+      MONGO_URL: ${{ secrets.MONGO_URL }}
+      # Valor literal (não é segredo): banco separado para o CI não
+      # poluir os dados reais.
+      MONGO_DB: ci_tests
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      # Falha cedo e com mensagem clara se faltar algum segredo.
+      # Só imprime o NOME da variável, nunca o valor.
+      - name: Conferir segredos
+        run: |
+          faltando=0
+          for nome in WANDB_API_KEY WANDB_PROJECT WANDB_MODELS MONGO_URL; do
+            if [ -z "${!nome}" ]; then
+              echo "::error::Segredo $nome vazio ou não cadastrado (Settings > Secrets and variables > Actions)"
+              faltando=1
+            fi
+          done
+          exit $faltando
+
+      # Constrói a imagem e sobe o container em segundo plano
+      - name: Subir a API com docker compose
+        run: docker compose up -d --build
+
+      # A API só responde GET / depois que o startup termina (download dos
+      # modelos do W&B + carga do TensorFlow), o que pode levar minutos.
+      # Fazemos polling a cada 10 s, por até 15 min. Se o container
+      # morrer no meio, aborta na hora e mostra os logs.
+      - name: Esperar a API ficar pronta
+        run: |
+          limite=900; intervalo=10; t=0
+          until curl -fs -o /dev/null http://localhost:8000/; do
+            estado=$(docker inspect -f '{{.State.Status}}' intent-clf 2>/dev/null || echo ausente)
+            if [ "$estado" != "running" ]; then
+              echo "::error::Container intent-clf não está rodando (estado: $estado)"
+              docker compose logs --tail=200
+              exit 1
+            fi
+            if [ "$t" -ge "$limite" ]; then
+              echo "::error::API não respondeu em ${limite}s"
+              docker compose logs --tail=200
+              exit 1
+            fi
+            echo "Aguardando a API... ${t}s"
+            sleep "$intervalo"; t=$((t + intervalo))
+          done
+          echo "API pronta após ${t}s"
+
+      - name: Configurar Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      # O conftest.py da pasta tests/ importa fastapi e mongomock, entao o
+      # e2e tambem precisa das dependencias de desenvolvimento (leves).
+      - name: Instalar dependências de teste
+        run: pip install -r requirements-dev.txt
+
+      # E2E_BASE_URL liga os testes e2e (sem ela eles são pulados)
+      - name: Rodar testes e2e
+        env:
+          E2E_BASE_URL: http://localhost:8000
+        run: python -m pytest -m e2e -ra
+
+      # Só executa se algum passo anterior falhou: ajuda a diagnosticar
+      - name: Logs do container (em caso de falha)
+        if: failure()
+        run: docker compose logs --tail=200
+
+      # Sempre derruba tudo e apaga volumes, mesmo se algo falhou
+      - name: Derrubar containers
+        if: always()
+        run: docker compose down -v

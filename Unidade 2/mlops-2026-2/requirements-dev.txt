@@ -1,0 +1,18 @@
+# Dependencias minimas para rodar unit + integration SEM TensorFlow.
+# Versoes iguais as do requirements.txt do projeto quando existem.
+
+# --- API e validacao (as mesmas do projeto) ---
+fastapi==0.119.1
+starlette==0.48.0
+pydantic==2.11.7
+python-dotenv==1.1.1
+
+# --- Banco (pymongo real; mongomock imita o Mongo em memoria nos testes) ---
+pymongo==4.15.3
+mongomock==4.3.0
+
+# --- Testes ---
+pytest==9.1.1
+pytest-cov==7.1.0
+# httpx: usado pelo TestClient do FastAPI e pelo teste e2e
+httpx==0.28.1
