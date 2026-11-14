@@ -51,3 +51,6 @@ webserver_config.py
 # Sistema Operacional
 .DS_Store
 Thumbs.db
+
+# Repositório clonado da API
+/mlops-2026-2/
