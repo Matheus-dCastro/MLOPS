@@ -16,3 +16,12 @@ pytest==9.1.1
 pytest-cov==7.1.0
 # httpx: usado pelo TestClient do FastAPI e pelo teste e2e
 httpx==0.28.1
+
+# --- Telemetria / Observabilidade ---
+opentelemetry-api==1.45.2
+opentelemetry-sdk==1.45.2
+opentelemetry-exporter-otlp-proto-http==1.45.2
+opentelemetry-instrumentation==0.66b2
+opentelemetry-instrumentation-fastapi==0.66b2
+opentelemetry-instrumentation-logging==0.66b2
+

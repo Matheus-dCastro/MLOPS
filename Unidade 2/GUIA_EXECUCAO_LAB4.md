@@ -60,14 +60,14 @@ cd "/home/alomyr/Projetos/UFRN-06/MLOPS/Unidade 2/mlops-2026-2"
 echo SEU_TOKEN | docker login ghcr.io -u matheus-dcastro --password-stdin
 
 # Build e push da imagem:
-docker build --platform linux/amd64 -t ghcr.io/matheus-dcastro/intent-clf:latest .
-docker push ghcr.io/matheus-dcastro/intent-clf:latest
+docker build --platform linux/amd64 -t ghcr.io/matheus-dcastro/mlops-2026-2:latest .
+docker push ghcr.io/matheus-dcastro/mlops-2026-2:latest
 ```
 3. No seu GitHub:
-   * Abra a aba **Packages** no seu perfil e clique no pacote `intent-clf`.
+   * Abra a aba **Packages** no seu perfil e clique no pacote `mlops-2026-2`.
    * Em **Package settings**:
      * Altere a visibilidade para **Public**.
-     * Em **Manage Actions access** > **Add repository**, selecione o repositório `intent-clf` com papel **Write**.
+     * Em **Manage Actions access** > **Add repository**, selecione o repositório `mlops-2026-2` com papel **Write**.
 
 ---
 
@@ -107,30 +107,30 @@ az role assignment create \
 
 4. **Criar a Credencial Federada (OIDC) para o GitHub Actions**:
 ```bash
-# Substitua Matheus-dCastro/intent-clf pelo seu repositório exato
+# Apontando para o repositório Matheus-dCastro/mlops-2026-2
 az identity federated-credential create \
   --name gh-actions-branch \
   --identity-name mlops-deployer \
   --resource-group mlops-2026-2 \
   --issuer https://token.actions.githubusercontent.com \
-  --subject "repo:Matheus-dCastro/intent-clf:ref:refs/heads/main"
+  --subject "repo:Matheus-dCastro/mlops-2026-2:ref:refs/heads/main"
 
 az identity federated-credential create \
   --name gh-actions-env \
   --identity-name mlops-deployer \
   --resource-group mlops-2026-2 \
   --issuer https://token.actions.githubusercontent.com \
-  --subject "repo:Matheus-dCastro/intent-clf:environment:production"
+  --subject "repo:Matheus-dCastro/mlops-2026-2:environment:production"
 ```
 
 5. **Subir a API no Azure Container Apps à mão**:
 ```bash
-# Substitua pelas suas credenciais reais
+# Usando as variáveis de ambiente e a imagem do GHCR
 az containerapp create \
   --name intent-clf \
   --resource-group mlops-2026-2 \
   --environment mlops-env \
-  --image ghcr.io/matheus-dcastro/intent-clf:latest \
+  --image ghcr.io/matheus-dcastro/mlops-2026-2:v1.0.0 \
   --target-port 8000 \
   --ingress external \
   --secrets \
@@ -139,9 +139,10 @@ az containerapp create \
   --env-vars \
     WANDB_API_KEY=secretref:wandb-api-key \
     WANDB_PROJECT=mlops-2026-2 \
-    WANDB_MODELS=matheus-dcastro/mlops-2026-2/confusion-clf:v0 \
+    WANDB_MODELS=matheus-dcastro/mlops-2026-2/confusion-clf:v2 \
     MONGO_URL=secretref:mongo-url \
-    APP_VERSION=latest
+    APP_VERSION=v1.0.0
+
 ```
 
 6. **Guardar a Application Url**:
