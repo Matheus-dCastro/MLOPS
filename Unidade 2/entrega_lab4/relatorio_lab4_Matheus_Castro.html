@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>Relatório do Laboratório 4 - CD com GitHub Actions e Azure Container Apps</title>
+<style>
+    @page {
+        size: A4;
+        margin: 20mm 15mm 20mm 15mm;
+        @bottom-right {
+            content: "Página " counter(page) " de " counter(pages);
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            color: #64748b;
+        }
+        @bottom-left {
+            content: "IMD3005 - MLOps 2026.2 | Lab 4: CD com Azure Container Apps";
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            font-size: 8pt;
+            color: #64748b;
+        }
+    }
+
+    body {
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        color: #1e293b;
+        line-height: 1.5;
+        font-size: 9.5pt;
+    }
+
+    h1 {
+        font-size: 19pt;
+        color: #0f172a;
+        margin-bottom: 4px;
+        font-weight: 700;
+        border-bottom: 2.5px solid #2563eb;
+        padding-bottom: 8px;
+    }
+
+    h2 {
+        font-size: 13pt;
+        color: #1e40af;
+        margin-top: 22px;
+        margin-bottom: 8px;
+        font-weight: 600;
+        border-bottom: 1px solid #e2e8f0;
+        padding-bottom: 4px;
+        page-break-after: avoid;
+    }
+
+    h3 {
+        font-size: 10.5pt;
+        color: #334155;
+        margin-top: 14px;
+        margin-bottom: 6px;
+        font-weight: 600;
+        page-break-after: avoid;
+    }
+
+    p {
+        margin: 6px 0;
+        text-align: justify;
+    }
+
+    .meta-box {
+        background-color: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-left: 4px solid #2563eb;
+        padding: 10px 14px;
+        margin: 14px 0 20px 0;
+        border-radius: 4px;
+    }
+
+    .meta-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 9pt;
+    }
+
+    .meta-table td {
+        padding: 3px 6px;
+        vertical-align: top;
+    }
+
+    .meta-label {
+        font-weight: bold;
+        color: #475569;
+        width: 22%;
+    }
+
+    .meta-val {
+        color: #0f172a;
+    }
+
+    .figure-container {
+        margin: 12px 0 16px 0;
+        text-align: center;
+        page-break-inside: avoid;
+    }
+
+    .figure-img {
+        max-width: 98%;
+        height: auto;
+        border: 1px solid #cbd5e1;
+        border-radius: 6px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+    }
+
+    .figure-caption {
+        font-size: 8.5pt;
+        color: #475569;
+        margin-top: 5px;
+        font-style: italic;
+    }
+
+    .badge {
+        display: inline-block;
+        padding: 2px 7px;
+        font-size: 7.5pt;
+        font-weight: bold;
+        border-radius: 3px;
+        text-transform: uppercase;
+    }
+
+    .badge-success { background-color: #dcfce7; color: #15803d; }
+    .badge-info { background-color: #e0f2fe; color: #0369a1; }
+    .badge-warning { background-color: #fef9c3; color: #854d0e; }
+
+    .code-box {
+        background-color: #0f172a;
+        color: #f8fafc;
+        padding: 8px 12px;
+        border-radius: 4px;
+        font-family: 'Courier New', Courier, monospace;
+        font-size: 8.5pt;
+        overflow-x: hidden;
+        margin: 8px 0;
+    }
+
+    .summary-card {
+        background-color: #f0fdf4;
+        border: 1px solid #bbf7d0;
+        border-left: 4px solid #16a34a;
+        padding: 10px 14px;
+        margin: 12px 0;
+        border-radius: 4px;
+    }
+
+    .page-break {
+        page-break-before: always;
+    }
+</style>
+</head>
+<body>
+
+<h1>Laboratório 4: CD com GitHub Actions e Azure Container Apps</h1>
+<p style="font-size: 10pt; color: #475569; margin-top: -4px; margin-bottom: 12px;">
+    Automação de Deploy, Integração Contínua, Registro de Imagens (GHCR) e Rollback Instantâneo
+</p>
+
+<div class="meta-box">
+    <table class="meta-table">
+        <tr>
+            <td class="meta-label">Instituição:</td>
+            <td class="meta-val">Instituto Metrópole Digital — Universidade Federal do Rio Grande do Norte (IMD / UFRN)</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Disciplina:</td>
+            <td class="meta-val">IMD3005 - Engenharia de Machine Learning (MLOps) · 2026.2</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Docente:</td>
+            <td class="meta-val">Prof. Dr. Adelson de Araújo Silva Júnior</td>
+        </tr>
+        <tr>
+            <td class="meta-label">Discente:</td>
+            <td class="meta-val"><strong>Matheus Vinicius Silva Freire de Castro</strong></td>
+        </tr>
+        <tr>
+            <td class="meta-label">Repositório Público:</td>
+            <td class="meta-val"><a href="https://github.com/Matheus-dCastro/mlops-2026-2" style="color:#2563eb; text-decoration:none;">https://github.com/Matheus-dCastro/mlops-2026-2</a></td>
+        </tr>
+        <tr>
+            <td class="meta-label">Workflow CD:</td>
+            <td class="meta-val"><a href="https://github.com/Matheus-dCastro/mlops-2026-2/blob/main/.github/workflows/cd.yml" style="color:#2563eb; text-decoration:none;">.github/workflows/cd.yml</a></td>
+        </tr>
+        <tr>
+            <td class="meta-label">Pacote GHCR:</td>
+            <td class="meta-val"><code>ghcr.io/matheus-dcastro/mlops-2026-2</code> (Público)</td>
+        </tr>
+    </table>
+</div>
+
+<h2>1. Resumo Executivo da Solução</h2>
+<p>
+    Este relatório documenta a conclusão e validação integral do <strong>Laboratório 4</strong> da disciplina de MLOps. 
+    O objetivo central foi implementar uma esteira de Entrega Contínua (Continuous Delivery - CD) totalmente automatizada, 
+    robusta e resiliente para a API de classificação de intenções (<code>intent-clf</code>). 
+</p>
+<p>
+    A solução integra:
+</p>
+<ul>
+    <li><strong>Versionamento e Rastreamento de Imagens:</strong> Publicação conteinerizada no GitHub Container Registry (GHCR) com tags semânticas (<code>v1.0.0</code>, <code>v1.0.1</code> e <code>v1.0.2</code>).</li>
+    <li><strong>Execução Prévia de Testes (CI Reutilizável):</strong> O workflow de CD invoca obrigatoriamente a suíte de testes unitários, testes de integração e testes de fumaça (e2e com W&B e MongoDB) via <code>workflow_call:</code> antes de qualquer etapa de release.</li>
+    <li><strong>Segurança com OpenID Connect (OIDC):</strong> Autenticação na Microsoft Azure sem credenciais de longa duração, por meio de credencial federada entre a Identidade Gerenciada <code>mlops-deployer</code> e o GitHub Actions.</li>
+    <li><strong>Governança com Aprovação Manual:</strong> Configuração do ambiente <code>production</code> com <em>Required reviewers</em> no GitHub, retendo o deploy até autorização explícita do operador.</li>
+    <li><strong>Verificação Pós-Deploy e Rollback Automatizado:</strong> O job <code>verify</code> realiza sondagem ativa do endpoint de saúde e predição. O gatilho manual <code>workflow_dispatch</code> permite retornar a uma versão anterior em segundos sem necessidade de reconstruir imagens ou reexecutar testes de CI.</li>
+</ul>
+
+<div class="summary-card">
+    <strong>Status de Conformidade:</strong> Todos os 7 requisitos e evidências do roteiro foram atendidos e comprovados experimentalmente na nuvem pública (Microsoft Azure, região <em>Brazil South</em>).
+</div>
+
+<h2>2. Evidência 1: Provisionamento e Overview no Azure Container Apps</h2>
+<p>
+    A aplicação <code>intent-clf</code> foi provisionada dentro do Resource Group <code>mlops-2026-2</code> no ambiente gerenciado <code>mlops-env</code>. 
+    A infraestrutura foi alocada com 2.0 vCPUs e 4.0 GiB de memória, expondo a porta de ingress externa 8000 sobre HTTPS. 
+    A primeira versão em operação (<code>v1.0.0</code>) foi validada consumindo os modelos reais do Weights & Biases e persistindo no cluster MongoDB Atlas.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 19-44-22.png" alt="Overview do Azure Container App">
+    <div class="figure-caption">Figura 1: Overview do Container App <code>intent-clf</code> no portal Azure, exibindo Status Running e Application Url gerada.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>3. Evidência 2: Pipeline de CD e Portão de Aprovação Manual (v1.0.1)</h2>
+<p>
+    Ao disparar o push da tag semântica <code>git push origin v1.0.1</code>, o workflow <code>cd.yml</code> foi acionado. 
+    Após a conclusão com sucesso dos jobs <code>ci</code> e <code>release</code> (geração e envio da imagem <code>:v1.0.1</code> ao GHCR), 
+    o pipeline interrompeu seu fluxo no job <code>deploy</code> devido à regra de proteção do ambiente <code>production</code>.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-02-08.png" alt="Aprovação Manual do Deploy">
+    <div class="figure-caption">Figura 2: Job <code>deploy</code> aguardando aprovação manual com a caixa <em>Review pending deployments</em> para o ambiente <code>production</code>.</div>
+</div>
+
+<h2>4. Evidência 3: Execução Completa e Sucesso do Pipeline CD (v1.0.1)</h2>
+<p>
+    Após a aprovação formal realizada pelo usuário autorizado (<code>Matheus-dCastro</code>), o runner autenticou-se na Azure via OIDC, 
+    atualizou a revisão do container para a imagem <code>:v1.0.1</code> e disparou a validação de disponibilidade e inferência.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-16-45.png" alt="Pipeline CD Verde">
+    <div class="figure-caption">Figura 3: Execução concluída com sucesso da versão <code>v1.0.1</code> exibindo todos os jobs (<code>ci</code>, <code>release</code>, <code>deploy</code> e <code>verify</code>) em estado verde.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>5. Evidência 4: Verificação em Produção (Log do Job Verify)</h2>
+<p>
+    O job <code>verify</code> executa polling ativo contra a rota raiz <code>GET /</code> para checar se a versão dinâmica retornada confere com 
+    a tag enviada e dispara uma requisição <code>POST /predictions</code> com payload de teste. Abaixo é demonstrado o encerramento do log com a mensagem <code>OK: v1.0.1 no ar</code>.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-18-35.png" alt="Log do Verify v1.0.1">
+    <div class="figure-caption">Figura 4: Log do step de verificação terminando com <code>OK: v1.0.1 no ar</code> e predição com <code>200 OK</code>.</div>
+</div>
+
+<h2>6. Evidência 5: Publicação da Versão v1.0.2 e Validação da Rota Raiz</h2>
+<p>
+    Para exercitar a entrega contínua contínua, uma nova versão (<code>v1.0.2</code>) foi publicada via tag Git. O pipeline compilou a imagem, publicou no GHCR e atualizou o container na Azure após aprovação. 
+    A consulta à rota raiz confirmou a presença imediata da versão <code>v1.0.2</code> em produção.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-36-09.png" alt="Browser v1.0.2">
+    <div class="figure-caption">Figura 5: Resposta da URL pública no navegador exibindo <code>{"status":"ok","version":"v1.0.2"}</code>.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>7. Evidência 6: Exercício de Rollback Automatizado para a Versão v1.0.1</h2>
+<p>
+    Simulando um cenário em que a versão <code>v1.0.2</code> necessitava ser revertida emergencialmente, utilizou-se o gatilho <code>workflow_dispatch</code> da aba Actions apontando para a tag anterior <code>v1.0.1</code>. 
+    Como a imagem já estava previamente publicada no GHCR, o workflow pulou os jobs <code>ci</code> e <code>release</code> (exibidos em cinza), executando estritamente a troca da revisão e os testes de verificação.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-38-17.png" alt="Run do Rollback">
+    <div class="figure-caption">Figura 6: Execução do rollback comprovando que <code>ci</code> e <code>release</code> foram pulados (cinza) e o container foi revertido para <code>v1.0.1</code>.</div>
+</div>
+
+<h3>Confirmação da Reversão no Navegador (v1.0.1 Restabelecida):</h3>
+<p>
+    Após o término do rollback, a consulta pública ao endpoint <code>GET /</code> comprovou que a versão estável <code>v1.0.1</code> voltou a atender o tráfego externo.
+</p>
+
+<div class="figure-container">
+    <img class="figure-img" src="/home/alomyr/Projetos/UFRN-06/MLOPS/mlops-2026-2/fotos do deploy/Screenshot From 2026-11-15 20-38-49.png" alt="Browser v1.0.1 após Rollback">
+    <div class="figure-caption">Figura 7: Resposta da URL pública no navegador após rollback exibindo <code>{"status":"ok","version":"v1.0.1"}</code>.</div>
+</div>
+
+<div class="page-break"></div>
+
+<h2>8. Evidência 7: Encerramento Seguro e Desprovisionamento na Azure</h2>
+<p>
+    Conforme preconizado nas instruções do laboratório (para cessar o consumo dos créditos acadêmicos da assinatura <em>Azure for Students</em>), 
+    o Resource Group <code>mlops-2026-2</code> foi integralmente excluído ao término dos experimentos por meio do comando da CLI:
+</p>
+
+<div class="code-box">
+az group delete --name mlops-2026-2 --yes --no-wait
+</div>
+
+<p>
+    Abaixo, a consulta ao gerenciador de recursos da Azure via CLI confirma o desprovisionamento completo do grupo e de todos os recursos filhos (ambiente de containers, aplicativo e identidades federadas):
+</p>
+
+<div class="code-box">
+$ az group exists --name mlops-2026-2<br>
+false<br>
+$ az group show --name mlops-2026-2<br>
+(ResourceGroupNotFound) Resource group 'mlops-2026-2' could not be found.
+</div>
+
+<h2>9. Tabela de Conformidade dos Requisitos de Entrega</h2>
+<table style="width:100%; border-collapse: collapse; font-size: 8.5pt; margin-top: 10px;">
+    <thead>
+        <tr style="background-color: #f1f5f9; border-bottom: 2px solid #cbd5e1;">
+            <th style="padding: 6px; text-align: left; width: 40%;">Requisito Solicitado no Roteiro</th>
+            <th style="padding: 6px; text-align: center; width: 25%;">Evidência / Seção</th>
+            <th style="padding: 6px; text-align: center; width: 35%;">Status</th>
+        </tr>
+    </thead>
+    <tbody>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Link do repositório público com <code>cd.yml</code></td>
+            <td style="padding: 5px; text-align: center;">Cabeçalho / Seção 1</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Entregue e Público</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Overview do Container App com URL e tag</td>
+            <td style="padding: 5px; text-align: center;">Figura 1 (Seção 2)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado (v1.0.0)</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Job <code>deploy</code> aguardando aprovação (v1.0.1)</td>
+            <td style="padding: 5px; text-align: center;">Figura 2 (Seção 3)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado (Review)</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Run da v1.0.1 com todos os blocos verdes</td>
+            <td style="padding: 5px; text-align: center;">Figura 3 (Seção 4)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado (Success)</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Log do <code>verify</code> com "OK: v1.0.1 no ar"</td>
+            <td style="padding: 5px; text-align: center;">Figura 4 (Seção 5)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado (Log 200 OK)</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">GET / mostrando "v1.0.2" e depois "v1.0.1"</td>
+            <td style="padding: 5px; text-align: center;">Figuras 5 e 7 (Seções 6 e 7)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado no Navegador</span></td>
+        </tr>
+        <tr style="border-bottom: 1px solid #e2e8f0;">
+            <td style="padding: 5px;">Run do rollback com <code>ci</code> e <code>release</code> pulados</td>
+            <td style="padding: 5px; text-align: center;">Figura 6 (Seção 7)</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Comprovado (Skipped)</span></td>
+        </tr>
+        <tr>
+            <td style="padding: 5px;">Resource group <code>mlops-2026-2</code> apagado</td>
+            <td style="padding: 5px; text-align: center;">Seção 8</td>
+            <td style="padding: 5px; text-align: center;"><span class="badge badge-success">Desprovisionado com Sucesso</span></td>
+        </tr>
+    </tbody>
+</table>
+
+</body>
+</html>
